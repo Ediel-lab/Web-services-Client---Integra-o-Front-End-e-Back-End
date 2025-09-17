@@ -1,13 +1,11 @@
 import React, { useState, useEffect } from 'react';
 import './App.css';
 
-// --- Interfaces Atualizadas ---
+// --- Interfaces (sem alteração) ---
 interface User {
   id: number;
-  // Adicionado username para corresponder à API e ao pedido
-  username: string;
+  username:string;
 }
-
 interface Comment {
   postId: number;
   id: number;
@@ -15,21 +13,16 @@ interface Comment {
   email: string;
   body: string;
 }
-
 interface Post {
   id: number;
   userId: number;
   title: string;
   body: string;
 }
-
-// Interface combinada com as novas propriedades
 interface PostWithAuthorAndComments extends Post {
-  // Renomeado de authorName para username
   username: string;
   comments?: Comment[];
   commentsLoading?: boolean;
-  // Nova propriedade para controlar a visibilidade
   areCommentsVisible?: boolean; 
 }
 
@@ -37,7 +30,20 @@ const App: React.FC = () => {
   const [posts, setPosts] = useState<PostWithAuthorAndComments[]>([]);
   const [loading, setLoading] = useState<boolean>(true);
   const [error, setError] = useState<string | null>(null);
+  
+  // ESTADO ATUALIZADO para um objeto com title e body
+  const [newPost, setNewPost] = useState({ title: '', body: '' });
 
+  // NOVA FUNÇÃO para lidar com a mudança em ambos os campos (título e corpo)
+  const handleNewPostChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
+    const { name, value } = e.target;
+    setNewPost(prevPost => ({
+      ...prevPost,
+      [name]: value
+    }));
+  };
+
+  // --- Lógica de busca e toggle (sem alteração) ---
   useEffect(() => {
     const fetchInitialData = async () => {
       try {
@@ -46,30 +52,18 @@ const App: React.FC = () => {
           fetch('https://jsonplaceholder.typicode.com/posts'),
           fetch('https://jsonplaceholder.typicode.com/users')
         ]);
-
-        if (!postsResponse.ok || !usersResponse.ok) {
-          throw new Error(`HTTP error!`);
-        }
-
+        if (!postsResponse.ok || !usersResponse.ok) throw new Error(`HTTP error!`);
         const postsData: Post[] = await postsResponse.json();
         const usersData: User[] = await usersResponse.json();
-
-        // Mapa agora armazena o username
         const usersMap = new Map(usersData.map(user => [user.id, user.username]));
-
-        // Combina os dados usando a propriedade 'username'
         const combinedPosts = postsData.map(post => ({
           ...post,
           username: usersMap.get(post.userId) || 'Usuário Desconhecido'
         }));
-
         setPosts(combinedPosts);
       } catch (e) {
-        if (e instanceof Error) {
-            setError(e.message);
-        } else {
-            setError('Ocorreu um erro desconhecido');
-        }
+        if (e instanceof Error) setError(e.message);
+        else setError('Ocorreu um erro desconhecido');
       } finally {
         setLoading(false);
       }
@@ -77,35 +71,24 @@ const App: React.FC = () => {
     fetchInitialData();
   }, []);
 
-  // --- LÓGICA DE TOGGLE ATUALIZADA ---
   const handleToggleComments = async (postId: number) => {
     const postIndex = posts.findIndex(p => p.id === postId);
     if (postIndex === -1) return;
-
     const currentPost = posts[postIndex];
     const updatedPosts = [...posts];
-
-    // Caso 1: Comentários já foram carregados, apenas alterna a visibilidade
     if (currentPost.comments) {
       updatedPosts[postIndex] = { ...currentPost, areCommentsVisible: !currentPost.areCommentsVisible };
       setPosts(updatedPosts);
       return;
     }
-
-    // Caso 2: Primeira vez clicando, busca os comentários
     try {
       updatedPosts[postIndex] = { ...currentPost, commentsLoading: true };
       setPosts(updatedPosts);
-
       const response = await fetch(`https://jsonplaceholder.typicode.com/comments?postId=${postId}`);
       if (!response.ok) throw new Error('Falha ao buscar comentários');
-      
       const commentsData: Comment[] = await response.json();
-      
-      // Adiciona os comentários e define a visibilidade como true
       updatedPosts[postIndex] = { ...currentPost, comments: commentsData, commentsLoading: false, areCommentsVisible: true };
       setPosts(updatedPosts);
-
     } catch (err) {
       console.error(err);
       updatedPosts[postIndex] = { ...currentPost, commentsLoading: false };
@@ -126,6 +109,30 @@ const App: React.FC = () => {
     <div className="app">
       <div className="container">
         <h1 className="main-title">Blog Posts - JSONPlaceholder</h1>
+
+        {/* ESTRUTURA ATUALIZADA com campos para título e corpo */}
+        <div className="idea-box-container">
+          <input
+            type="text"
+            name="title" // Atributo 'name' para identificar o campo
+            className="idea-box-input"
+            placeholder="Título do novo post"
+            value={newPost.title}
+            onChange={handleNewPostChange}
+          />
+          <textarea 
+            name="body" // Atributo 'name' para identificar o campo
+            className="idea-box-textarea" 
+            placeholder="Escreva sua ideia aqui..."
+            rows={5}
+            value={newPost.body}
+            onChange={handleNewPostChange}
+          ></textarea>
+          <button className="idea-box-button">
+            Publicar Ideia
+          </button>
+        </div>
+
         <div className="posts-list">
           {posts.map((post) => (
             <div key={post.id} className="post-card">
@@ -133,10 +140,21 @@ const App: React.FC = () => {
                 <div className="post-details">
                   <div className="post-header">
                     <h2 className="post-title">{post.title}</h2>
-                    {/* Alterado para post.username */}
                     <p className="post-author">por: @{post.username}</p>
                   </div>
                   <p className="post-body">{post.body}</p>
+                  
+                  {post.areCommentsVisible && (
+                    <div className="new-comment-area">
+                      <input 
+                        type="text" 
+                        className="new-comment-input" 
+                        placeholder="Adicione um comentário..."
+                      />
+                      <button className="new-comment-button">Enviar</button>
+                    </div>
+                  )}
+
                   <div className="card-actions">
                      <button 
                        className="toggle-comments-btn" 
@@ -148,7 +166,6 @@ const App: React.FC = () => {
                   </div>
                 </div>
 
-                {/* Condição de renderização atualizada para usar a nova flag de visibilidade */}
                 {(post.commentsLoading || (post.comments && post.areCommentsVisible)) && (
                    <div className="comments-section">
                     <h3 className="comments-title">Comentários</h3>
