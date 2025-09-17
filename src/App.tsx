@@ -26,7 +26,7 @@ interface Post {
 // Interface combinada para facilitar o uso no componente
 // Agora cada post terá o nome do autor e, opcionalmente, seus comentários.
 interface PostWithAuthorAndComments extends Post {
-  authorName: string;
+  username: string;
   comments?: Comment[]; // Comentários são opcionais
   commentsLoading?: boolean; // Para mostrar um feedback de carregamento
 }
@@ -63,7 +63,7 @@ const App: React.FC = () => {
         // Combina os dados dos posts com os nomes dos autores
         const combinedPosts = postsData.map(post => ({
           ...post,
-          authorName: usersMap.get(post.userId) || 'Autor Desconhecido'
+          username: usersMap.get(post.userId) || 'Autor Desconhecido'
         }));
 
         setPosts(combinedPosts);
@@ -140,7 +140,7 @@ const App: React.FC = () => {
             <div key={post.id} className="post-card">
               <div className="post-header">
                 <h2 className="post-title">{post.title}</h2>
-                <p className="post-author">por: {post.authorName}</p>
+                <p className="post-author">por: {post.username}</p>
               </div>
               <p className="post-body">{post.body}</p>
               
